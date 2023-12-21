@@ -10,7 +10,6 @@ MCPUHistName pileup
 
 
 ApplyTauIDSF true
-TauIdSFsByPTDM true
 TauIdSFsByDM false # Tau ID scale factors that are decay mode (DM) - dependent. If using di-tau triggers and tau-pt > 40 GeV, this are the recommended SFs.
 TauSFforEmbeddedSamples false
 

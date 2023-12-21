@@ -162,7 +162,7 @@ Analyzer::Analyzer(std::vector<std::string> infiles, std::string outfile, bool s
   setupBJetSFInfo(_Jet->pstats["BJet"], year);
 
   // Tau scale factors stuff
-  setupTauIDSFsInfo(_Tau->pstats["TauID"].smap.at("TauIDAlgorithm"), year, distats["Run"].bfind("TauIdSFsByDM"), distats["Run"].bfind("TauIdSFsByPTDM"), distats["Run"].bfind("TauSFforEmbeddedSamples"), distats["Run"].bfind("HighPtTaus"));
+  setupTauIDSFsInfo(_Tau->pstats["TauID"].smap.at("TauIDAlgorithm"), year, distats["Run"].bfind("TauIdSFsByDM"), distats["Run"].bfind("TauIdSFsByPT"), distats["Run"].bfind("TauSFforEmbeddedSamples"), distats["Run"].bfind("HighPtTaus"));
   setupTauResSFsInfo(distats["Run"].bfind("ApplyETauFakeRateESSF"));
 
   // L1 prefiring weights only for 2016 or 2017
@@ -1107,7 +1107,7 @@ bool Analyzer::select_mc_background(){
 }
 
 // --- Function that sets up all the SFs recommended by the Tau POG for Run II legacy --- //
-void Analyzer::setupTauIDSFsInfo(std::string tauidalgoname, std::string year, bool applyDMsfs, bool applyPTDMsfs, bool applyEmbedding, bool highPTtaus){
+void Analyzer::setupTauIDSFsInfo(std::string tauidalgoname, std::string year, bool applyDMsfs, bool applyPTsfs, bool applyEmbedding, bool highPTtaus){
 
   static std::map<std::string, std::string> tauidyearmap = {
     {"2016", ""},
@@ -1179,7 +1179,7 @@ void Analyzer::setupTauIDSFsInfo(std::string tauidalgoname, std::string year, bo
 
   // Load the modules according to the algorithm and working points specified for tau ID SFs
   if(tauidwp != 0){
-    tau1idSFs = TauIDSFTool((PUSPACE+"TauIDSFs/data").c_str(), tauidyear, tauid_algo, tauidwpsmap[tauidwp], antielewpsmap[antielewp], applyDMsfs, applyPTDMsfs, applyEmbedding, highPTtaus);
+    tau1idSFs = TauIDSFTool((PUSPACE+"TauIDSFs/data").c_str(), tauidyear, tauid_algo, tauidwpsmap[tauidwp], antielewpsmap[antielewp], applyDMsfs, applyPTsfs, applyEmbedding, highPTtaus);
   }
   else{
     failtau1iso = true;
@@ -1208,7 +1208,7 @@ void Analyzer::setupTauIDSFsInfo(std::string tauidalgoname, std::string year, bo
 
   // Load the modules according to the algorithm and working points specified for tau ID SFs
   if(tauidwp != 0){
-    tau2idSFs = TauIDSFTool((PUSPACE+"TauIDSFs/data").c_str(), tauidyear, tauid_algo, tauidwpsmap[tauidwp], antielewpsmap[antielewp], applyDMsfs, applyPTDMsfs, applyEmbedding, highPTtaus); 
+    tau2idSFs = TauIDSFTool((PUSPACE+"TauIDSFs/data").c_str(), tauidyear, tauid_algo, tauidwpsmap[tauidwp], antielewpsmap[antielewp], applyDMsfs, applyPTsfs, applyEmbedding, highPTtaus); 
   }
   else{
     failtau2iso = true;
@@ -1229,7 +1229,7 @@ void Analyzer::setupTauResSFsInfo(bool taufakeenergyscale){
 
 }
 
-double Analyzer::getTauIdSFs(bool getTauIDsf, bool getTauIDbyDMsfs, bool getTauIDbyPTDMsfs, bool getAntiElesf, bool getAntiMusf, std::string uncertainty){
+double Analyzer::getTauIdSFs(bool getTauIDsf, bool getTauIDbyDMsfs, bool getTauIDbyPTsfs, bool getAntiElesf, bool getAntiMusf, std::string uncertainty){
 
   double sf = 1.0, sf_tauid = 1.0, sf_antiele = 1.0, sf_antimu = 1.0;
 
@@ -1245,14 +1245,14 @@ double Analyzer::getTauIdSFs(bool getTauIDsf, bool getTauIDbyDMsfs, bool getTauI
     // std::cout << "gen match status = " << gen_match_status << std::endl;
 
     if(getTauIDsf && !failtau1iso){
-      if(getTauIDbyPTDMsfs){ // DM and pT-dependent SFs
-        sf_tauid *= tau1idSFs.getSFvsDMandPT(_Tau->pt(i), _Tau->decayModeInt[i], gen_match_status, uncertainty);
+      if(getTauIDbyPTsfs){ // pT-dependent SFs (depricated)
+        sf_tauid *= tau1idSFs.getSFvsPT(_Tau->pt(i), gen_match_status, uncertainty);
       }
       else if(getTauIDbyDMsfs){ // DM -dependent (depricated)
         sf_tauid *= tau1idSFs.getSFvsDM(_Tau->pt(i), _Tau->decayModeInt[i], gen_match_status, uncertainty);
       }
-      else{ //get vs pt SFs (depricated except for high-pt taus)
-        sf_tauid *= tau1idSFs.getSFvsPT(_Tau->pt(i), gen_match_status, uncertainty);
+      else{ //get vs DM and PT SFs (latest recommended as of end of 2023)
+        sf_tauid *= tau1idSFs.getSFvsDMandPT(_Tau->pt(i), _Tau->decayModeInt[i], gen_match_status, uncertainty);
       }
     }
     else if(getTauIDsf && failtau1iso) sf_tauid = 1.0;
@@ -1270,15 +1270,14 @@ double Analyzer::getTauIdSFs(bool getTauIDsf, bool getTauIDbyDMsfs, bool getTauI
     // std::cout << "gen match status = " << gen_match_status << std::endl;
 
     if(getTauIDsf && !failtau2iso){
-      if(getTauIDbyPTDMsfs){ // DM and pT-dependent SFs
-        sf_tauid *= tau2idSFs.getSFvsDMandPT(_Tau->pt(i), _Tau->decayModeInt[i], gen_match_status, uncertainty);
+      if(getTauIDbyPTsfs){ // pT-dependent SFs (depricated)
+        sf_tauid *= tau2idSFs.getSFvsPT(_Tau->pt(i), gen_match_status, uncertainty);        
       }
       else if(getTauIDbyDMsfs){
         sf_tauid *= tau2idSFs.getSFvsDM(_Tau->pt(i), _Tau->decayModeInt[i], gen_match_status, uncertainty);
       }
-      else{ //get vs pt SFs (depricated)
-        std::cout << "Gettting pt SFs. Not good amigo" << std::endl;
-        sf_tauid *= tau2idSFs.getSFvsPT(_Tau->pt(i), gen_match_status, uncertainty);
+      else{ //get vs pt and DM SFs (latest recommended as of end of 2023)
+        sf_tauid *= tau2idSFs.getSFvsDMandPT(_Tau->pt(i), _Tau->decayModeInt[i], gen_match_status, uncertainty);
       }
     }
     else if(getTauIDsf && failtau2iso) sf_tauid = 1.0;
@@ -2145,6 +2144,15 @@ void Analyzer::setupJetCorrections(std::string year, std::string outputfilename)
     jerTagsMC["2016"] = "Summer20UL16_JRV3_MC";
    }
 
+   static std::map<std::string, std::string> jerTagsDATA = {
+     {"2016" , "Summer20UL16_JRV3_DATA"},
+     {"2017" , "Summer19UL17_JRV2_DATA"},
+     {"2018" , "Summer19UL18_JRV2_DATA"}
+   };
+   if (year == "2016" && distats["Run"].bfind("is2016preVFP")){
+    jerTagsMC["2016"] = "Summer20UL16_JRV3_DATA";
+   }
+
 
    std::string jertag = jerTagsMC.begin()->second;
    std::string jectag = jecTagsMC.begin()->second;
@@ -2159,7 +2167,7 @@ void Analyzer::setupJetCorrections(std::string year, std::string outputfilename)
      runera = (year+outputfilename.substr(pos,1)).c_str();
 
      jectag = jecTagsDATA[runera];
-     jertag = jerTagsMC[year];
+     jertag = jerTagsDATA[year];
      archivetag = archiveTagsDATA[year];
    }
    else{
@@ -2259,12 +2267,14 @@ void Analyzer::applyJetEnergyCorrections(Particle& jet, const CUTS eGenPos, cons
         rawJetP4_noMuon = rawJetP4_noMuon - _Muon->p4(_Jet->matchingMuonIdx2[i]);
         muonsP4 += _Muon->p4(_Jet->matchingMuonIdx2[i]);
     }
-
+// JEC code. Removed for v9
+/*
     // Step 4: Retrieve the L123 and L1 jet energy correction factors.
     double jecL1L2L3 = jetRecalib.getCorrection(rawJetP4_noMuon, _Jet->area[i], jec_rho);
     double jecL1 = jetRecalibL1.getCorrection(rawJetP4_noMuon, _Jet->area[i], jec_rho);
 
     //systematics for JEC via JetRecalibrator
+
     if(systname == "Jet_Scale_Up"){
       jecL1L2L3 = jetRecalib.getCorrection(rawJetP4_noMuon, _Jet->area[i], jec_rho, 1.0);
       jecL1 = jetRecalibL1.getCorrection(rawJetP4_noMuon, _Jet->area[i], jec_rho, 1.0);
@@ -2275,11 +2285,14 @@ void Analyzer::applyJetEnergyCorrections(Particle& jet, const CUTS eGenPos, cons
       jecL1 = jetRecalibL1.getCorrection(rawJetP4_noMuon, _Jet->area[i], jec_rho, -1.0);
 
     }
+*/
+
     // Step 4: check if the jet pt of the corrected raw jet pt with L123 corrections is above the unclustered energy threshold.
     TLorentzVector jetL1L2L3_noMuonP4(0,0,0,0);
     TLorentzVector jetL1_noMuonP4(0,0,0,0);
 
-      // apply the corrections
+      // apply the jet scale corrections. These are not necessary for NanoAODv9
+ /*
     if( jecL1L2L3 * rawJetP4_noMuon.Pt() > jetUnclEnThreshold){
       jetL1L2L3_noMuonP4 = jetRecalib.correctedP4(rawJetP4_noMuon, jecL1L2L3); // L1L2L3 correction.
       jetL1_noMuonP4 = jetRecalibL1.correctedP4(rawJetP4_noMuon, jecL1); // L1 correction
@@ -2287,6 +2300,11 @@ void Analyzer::applyJetEnergyCorrections(Particle& jet, const CUTS eGenPos, cons
       jetL1L2L3_noMuonP4 = rawJetP4_noMuon; // no correction.
       jetL1_noMuonP4 = rawJetP4_noMuon; // no correction
     }
+*/
+    //passing through uncorrected jet 4-vectors for NanoAODv9
+      jetL1L2L3_noMuonP4 = rawJetP4_noMuon; // no correction.
+      jetL1_noMuonP4 = rawJetP4_noMuon; // no correction
+
 
     // Step 5 (optional): apply the JER corrections if desired to MC.
     // Define the JER scale factors:
@@ -4805,7 +4823,7 @@ void Analyzer::fill_histogram(std::string year) {
     //if(distats["Run"].bfind("ApplyTauIDSF")) wgt *= getTauIdDataMCScaleFactor(0);
     // Arguments: getTauIdSFs(bool getTauIDsf, bool getTauIDbyDMsfs, bool getAntiElesf, bool getAntiMusf, std::string uncertainty)
     // std::cout << "ApplyTauIDSF = " << distats["Run"].bfind("ApplyTauIDSF") << ", TauIdSFsByDM = " << distats["Run"].bfind("TauIdSFsByDM") << ", ApplyTauAntiEleSF = " << distats["Run"].bfind("ApplyTauAntiEleSF") << ", ApplyTauAntiMuSF = " << distats["Run"].bfind("ApplyTauAntiMuSF") << std::endl;
-    if(distats["Run"].bfind("ApplyTauIDSF")) wgt *= getTauIdSFs(true, distats["Run"].bfind("TauIdSFsByDM"),distats["Run"].bfind("TauIdSFsByPTDM"), distats["Run"].bfind("ApplyTauAntiEleSF"), distats["Run"].bfind("ApplyTauAntiMuSF"), "");
+    if(distats["Run"].bfind("ApplyTauIDSF")) wgt *= getTauIdSFs(true, distats["Run"].bfind("TauIdSFsByDM"),distats["Run"].bfind("TauIdSFsByPT"), distats["Run"].bfind("ApplyTauAntiEleSF"), distats["Run"].bfind("ApplyTauAntiMuSF"), "");
 
     // Apply Z-boost weights derived for ISR+stau analysis (SUS-19-002)
     if(distats["Run"].bfind("ApplyISRZBoostSF") && isVSample){
@@ -4862,13 +4880,13 @@ void Analyzer::fill_histogram(std::string year) {
         if(syst_names[i]=="Tau_weight_Up"){
           if(distats["Run"].bfind("ApplyTauIDSF")) {
             // Arguments: getTauIdSFs(bool getTauIDsf, bool getTauIDbyDMsfs, bool getAntiElesf, bool getAntiMusf, std::string uncertainty)
-            wgt /= getTauIdSFs(true, distats["Run"].bfind("TauIdSFsByDM"), distats["Run"].bfind("TauIdSFsByPTDM"), distats["Run"].bfind("ApplyTauAntiEleSF"), distats["Run"].bfind("ApplyTauAntiMuSF"), "");
-            wgt *= getTauIdSFs(true, distats["Run"].bfind("TauIdSFsByDM"), distats["Run"].bfind("TauIdSFsByPTDM"), distats["Run"].bfind("ApplyTauAntiEleSF"), distats["Run"].bfind("ApplyTauAntiMuSF"), "Up");
+            wgt /= getTauIdSFs(true, distats["Run"].bfind("TauIdSFsByDM"), distats["Run"].bfind("TauIdSFsByPT"), distats["Run"].bfind("ApplyTauAntiEleSF"), distats["Run"].bfind("ApplyTauAntiMuSF"), "");
+            wgt *= getTauIdSFs(true, distats["Run"].bfind("TauIdSFsByDM"), distats["Run"].bfind("TauIdSFsByPT"), distats["Run"].bfind("ApplyTauAntiEleSF"), distats["Run"].bfind("ApplyTauAntiMuSF"), "Up");
           }
         }else if(syst_names[i]=="Tau_weight_Down"){
           if(distats["Run"].bfind("ApplyTauIDSF")) {
-            wgt /= getTauIdSFs(true, distats["Run"].bfind("TauIdSFsByDM"), distats["Run"].bfind("TauIdSFsByPTDM"), distats["Run"].bfind("ApplyTauAntiEleSF"), distats["Run"].bfind("ApplyTauAntiMuSF"), "");
-            wgt *= getTauIdSFs(true, distats["Run"].bfind("TauIdSFsByDM"), distats["Run"].bfind("TauIdSFsByPTDM"), distats["Run"].bfind("ApplyTauAntiEleSF"), distats["Run"].bfind("ApplyTauAntiMuSF"), "Down");
+            wgt /= getTauIdSFs(true, distats["Run"].bfind("TauIdSFsByDM"), distats["Run"].bfind("TauIdSFsByPT"), distats["Run"].bfind("ApplyTauAntiEleSF"), distats["Run"].bfind("ApplyTauAntiMuSF"), "");
+            wgt *= getTauIdSFs(true, distats["Run"].bfind("TauIdSFsByDM"), distats["Run"].bfind("TauIdSFsByPT"), distats["Run"].bfind("ApplyTauAntiEleSF"), distats["Run"].bfind("ApplyTauAntiMuSF"), "Down");
           }
         }
         // ---------- Pileup weights ---------- //

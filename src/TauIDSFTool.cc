@@ -82,7 +82,7 @@ void TauIDSFTool::disabled() const {
 }
 
 
-TauIDSFTool::TauIDSFTool(const std::string& datapath, const std::string& year, const std::string& id, const std::string& wp, const std::string& wp_vsele,  const bool dm, const bool ptdm, const bool embedding, const bool highpT): ID(id), WP(wp), WP_VSELE(wp_vsele){
+TauIDSFTool::TauIDSFTool(const std::string& datapath, const std::string& year, const std::string& id, const std::string& wp, const std::string& wp_vsele,  const bool dm, const bool pt, const bool embedding, const bool highpT): ID(id), WP(wp), WP_VSELE(wp_vsele){
 
   bool verbose = false;
 //  std::string datapath                = Form("%s/src/TauPOG/TauIDSFs/data",getenv("CMSSW_BASE"));
@@ -152,7 +152,52 @@ TauIDSFTool::TauIDSFTool(const std::string& datapath, const std::string& year, c
       isHighPTVsPT = true;
 
     }
-    else if (ptdm) {
+    else if (pt) {
+      TString filename;
+      if (embedding) {
+          if (ID.find("oldDM") != std::string::npos)
+          {
+             std::cerr << "Scale factors for embedded samples are not provided for the MVA IDs." << std::endl;
+             assert(0);
+          }
+          filename = Form("%s/TauID_SF_pt_%s_%s_EMB.root",datapath.data(),ID.data(),year.data());
+      }
+      else {
+          filename = Form("%s/TauID_SF_pt_%s_%s.root",datapath.data(),ID.data(),year.data());
+      }
+      TFile* file = ensureTFile(filename,verbose);
+      func[""]     = extractTF1(file,Form("%s_cent",WP.data()));
+      func["Up"]   = extractTF1(file,Form("%s_up",  WP.data()));
+      func["Down"] = extractTF1(file,Form("%s_down",WP.data()));
+      file->Close();
+      delete file;
+      isVsPT = true;
+
+    } else if(dm){
+      TString filename;
+      if (embedding) {
+          if (ID.find("oldDM") != std::string::npos)
+          {
+             std::cerr << "Scale factors for embedded samples are not provided for the MVA IDs." << std::endl;
+             assert(0);
+          }
+          filename = Form("%s/TauID_SF_dm_%s_%s_EMB.root",datapath.data(),ID.data(),year.data());
+      }
+      else {
+          filename = Form("%s/TauID_SF_dm_%s_%s.root",datapath.data(),ID.data(),year.data());
+      }
+      TFile* file = ensureTFile(filename,verbose);
+      hist = extractTH1(file,WP);
+      hist->SetDirectory(nullptr);
+      file->Close();
+      delete file;
+      DMs    = {0,1,10};
+      if (ID.find("oldDM") == std::string::npos)
+      {
+          DMs.push_back(11);
+      }
+      isVsDM = true;
+    }else{
       DMs    = {0,1,10};
       if (ID.find("oldDM") == std::string::npos)
       {
@@ -166,7 +211,6 @@ TauIDSFTool::TauIDSFTool(const std::string& datapath, const std::string& year, c
       }
 
 
-      std::cout << "WP going into Tool are: " << wp << ", " << wp_vsele << std::endl;
       if (std::find(allowed_wp.begin(), allowed_wp.end(), wp) == allowed_wp.end() ||
       std::find(allowed_wp_vsele.begin(), allowed_wp_vsele.end(), wp_vsele) == allowed_wp_vsele.end()) {
       std::ostringstream msg;
@@ -213,58 +257,18 @@ TauIDSFTool::TauIDSFTool(const std::string& datapath, const std::string& year, c
         uncerts_dm10.insert(uncerts_dm10.end(), extra_uncerts_dm10.begin(), extra_uncerts_dm10.end());
         uncerts_dm11.insert(uncerts_dm11.end(), extra_uncerts_dm11.begin(), extra_uncerts_dm11.end());
       }
-      
+
       funcs_dm0 = extractTF1DMandPT(file,"DM0_"+year_+"_fit", uncerts_dm0);
       funcs_dm1 = extractTF1DMandPT(file,"DM1_"+year_+"_fit", uncerts_dm1);
       funcs_dm10 = extractTF1DMandPT(file,"DM10_"+year_+"_fit", uncerts_dm10);
       funcs_dm11 = extractTF1DMandPT(file,"DM11_"+year_+"_fit", uncerts_dm11);
-      
+
       isVsDMandPT = true;
 
-    } else if(dm){
-      TString filename;
-      if (embedding) {
-          if (ID.find("oldDM") != std::string::npos)
-          {
-             std::cerr << "Scale factors for embedded samples are not provided for the MVA IDs." << std::endl;
-             assert(0);
-          }
-          filename = Form("%s/TauID_SF_dm_%s_%s_EMB.root",datapath.data(),ID.data(),year.data());
-      }
-      else {
-          filename = Form("%s/TauID_SF_dm_%s_%s.root",datapath.data(),ID.data(),year.data());
-      }
-      TFile* file = ensureTFile(filename,verbose);
-      hist = extractTH1(file,WP);
-      hist->SetDirectory(nullptr);
-      file->Close();
-      delete file;
-      DMs    = {0,1,10};
-      if (ID.find("oldDM") == std::string::npos)
-      {
-          DMs.push_back(11);
-      }
-      isVsDM = true;
-    }else{
-      TString filename;
-      if (embedding) {
-          if (ID.find("oldDM") != std::string::npos)
-          {
-             std::cerr << "Scale factors for embedded samples are not provided for the MVA IDs." << std::endl;
-             assert(0);
-          }
-          filename = Form("%s/TauID_SF_pt_%s_%s_EMB.root",datapath.data(),ID.data(),year.data());
-      }
-      else {
-          filename = Form("%s/TauID_SF_pt_%s_%s.root",datapath.data(),ID.data(),year.data());
-      }
-      TFile* file = ensureTFile(filename,verbose);
-      func[""]     = extractTF1(file,Form("%s_cent",WP.data()));
-      func["Up"]   = extractTF1(file,Form("%s_up",  WP.data()));
-      func["Down"] = extractTF1(file,Form("%s_down",WP.data()));
-      file->Close();
-      delete file;
-      isVsPT = true;
+
+
+
+
     }
   }else if(std::find(antiEleIDs.begin(),antiEleIDs.end(),ID)!=antiEleIDs.end()){
       if (embedding){

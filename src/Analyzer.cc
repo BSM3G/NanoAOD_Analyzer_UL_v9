@@ -3729,11 +3729,14 @@ void Analyzer::setupBJetSFInfo(const PartStats& stats, std::string year){
    };
 
   static std::map<std::string, std::string> deepflavbtagsfcsvfiles = {
-    {"2016", "DeepJet_2016LegacySF_WP_V1.csv"},
-    {"2017", "DeepFlavour_94XSF_WP_V3_B_F.csv"},
-    {"2018", "DeepJet_102XSF_WP_V1.csv"}
+    {"2016", "2016_UL_postVFP_wp_deepJet.csv"},
+    {"2017", "2017_UL_wp_deepJet.csv"},
+    {"2018", "2018_UL_wp_deepJet.csv"}
   };
 
+  if(year == "2016" && distats["Run"].bfind("is2016preVFP")){
+    deepflavbtagsfcsvfiles["2016"] = "2016_UL_preVFP_wp_deepJet.csv";
+  }
    // This will be the default.
   std::string btagalgoname = "DeepCSV";
   std::string btagsffilename = deepcsvbtagsfcsvfiles.begin()->second;

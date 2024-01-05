@@ -41,6 +41,9 @@ BTagEntry::BTagEntry(const std::string &csvLine)
   std::vector<std::string> vec;
   std::string token;
   while (std::getline(buff, token, ","[0])) {
+    if (token.find('@') != std::string::npos){
+      std::replace( token.begin(), token.end(), '@', ',');
+    } // found
     token = BTagEntry::trimStr(token);
     if (token.empty()) {
       continue;
